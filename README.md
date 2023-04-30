@@ -33,8 +33,8 @@ Para ejecutar el programa con los operandos de un archivo, utilice el siguiente 
 5. Sumar dos matrices
 6. Realizar el producto punto de dos matrices
 7. Multiplicar un escalar por una matriz
-8. Normalizar una matriz columna por columna
-9. Normalizar una matriz columna por columna
+8. Normalizar una matriz columna por columna con Standard Score
+9. Normalizar una matriz columna por columna con Min-Max
 
 ## Créditos
 Este laboratorio fue propuesto por el profesor Jheisson Argiro Lopez Restrepo en el laboratorio 3 de la clase de Sistemas Operativos. La solución en este repositorio fue escrita por Esneider Ballesta Paredes,...
