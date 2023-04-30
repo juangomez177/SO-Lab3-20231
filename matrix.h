@@ -3,6 +3,16 @@
 
 #include <stdint.h>
 
+// Estructura para los argumentos que se pasarán a los hilos
+typedef struct
+{
+    int **mat1;
+    int **mat2;
+    int **result;
+    int rows;
+    int cols;
+} thread_args;
+
 typedef struct Vector Vector;
 struct Vector
 {
@@ -23,6 +33,7 @@ Vector *create_vector(int rows, int cols);
 Vector *create_vector_from_file(const char *file_path, int rows, int cols);
 Matrix *create_matrix(int rows, int cols);
 Matrix *create_matrix_from_file(const char *file_path, int rows, int cols);
+int **generate_random_matrix(int rows, int cols);
 
 void init_matrix_rand(Matrix *M);
 void init_vector_rand(Vector *V);
