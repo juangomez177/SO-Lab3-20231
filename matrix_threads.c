@@ -6,53 +6,107 @@
 /*
 Para compilar este ejemplo:  gcc -o exe  matrix.c matrix_threads.c
 */
+Vector *start_end_cols(Thread_data *data)
+{
+    int section_size = data->result->cols / data->thread_count;
+    int cols_extra = data->result->cols % data->thread_count;
+    int start_col = data->thread_id * section_size + (data->thread_id < cols_extra ? data->thread_id : cols_extra); // Revisar al final de este archivo para ver la forma extendida
+    int end_col = start_col + section_size - 1 + (data->thread_id < cols_extra ? 1 : 0);                            // Revisar al final de este archivo para ver la forma extendida
+    Vector *V = create_vector(1, 2);
 
+    V->elements[0] = start_col;
+    V->elements[1] = end_col;
+
+    return V;
+}
 
 void *Add_matrix(void *thread_arg)
 {
     Thread_data *data = (Thread_data *)thread_arg;
-    printf("thread id: %d\n", data->thread_id);
 
     // Calcula el tamaño de la sección que cada hilo sumará
-    int section_size = data->result->cols / data->thread_count;
-    int cols_extra = data->result->cols % data->thread_count;
-
-    int start_col = data->thread_id * section_size + (data->thread_id < cols_extra ? data->thread_id : cols_extra); //Revisar al final de este archivo para ver la forma extendida
-    int end_col = start_col + section_size - 1 + (data->thread_id < cols_extra ? 1 : 0); //Revisar al final de este archivo para ver la forma extendida
-
-    printf("section_size: %d\n", section_size);
-    printf("cols_extra: %d\n", cols_extra);
-    printf("start_col: %d\n", start_col);
-    printf("end_col: %d\n", end_col);
-    puts("");
+    Vector *V = start_end_cols(data);
+    int start_col = V->elements[0];
+    int end_col = V->elements[1];
 
     // Suma las secciones correspondientes
-    for (int j = start_col; j <= end_col; j++)
+    for (int i = start_col; i <= end_col; i++)
     {
-        for (int i = 0; i < data->result->rows; i++)
+        for (int j = 0; j < data->result->rows; j++)
         {
-            printf("M element[%d][%d]: %f\n", i, j, data->M->elements[i][j]);
-            printf("N element[%d][%d]: %f\n", i, j, data->N->elements[i][j]);
-            data->result->elements[i][j] = data->M->elements[i][j] + data->N->elements[i][j];
+            data->result->elements[j][i] = data->M->elements[j][i] + data->N->elements[j][i];
         }
     }
-    // puts("");
-    // print_matrix(data->result);
-    // puts("");
     return NULL;
 }
 
-Matrix *Add_matrix_threads(const Matrix *M, const Matrix *N, int thread_count)
+void *Dot_matrix(void *thread_arg)
 {
-    if (M->rows != N->rows || M->cols != N->cols)
+    Thread_data *data = (Thread_data *)thread_arg;
+
+    // Calcula el tamaño de la sección que cada hilo multiplicará
+    Vector *V = start_end_cols(data);
+    int start_col = V->elements[0];
+    int end_col = V->elements[1];
+
+    for (int k = start_col; k < end_col; k++)// cambia cols de N
     {
-        return NULL; // No se pueden sumar matrices de diferentes tamaños
+        for (int i = 0; i < data->M->rows; i++)// cambia rows de M
+        {
+            double d = 0.0;
+            for (int j = 0; j < data->N->rows; j++)// cambia cols de M y rows de N
+            {
+                d += data->M->elements[i][j] * data->N->elements[j][k];
+            }
+            data->result->elements[i][k] = d;
+        }
     }
 
+    // for (int i = 0; i < data->M->rows; ++i) // Este loop itera entre las filas de M
+    // {
+    //     for (int j = 0; j < data->N->cols; ++j) // Este loop se encarga de iterar las columnas de N
+    //     {
+    //         double d = 0.0;
+    //         for (int k = 0; k < data->M->cols; ++k) // Este loop se encarga de iterar la misma filas de  M y la misma columna de N
+    //         {
+    //             d += data->M->elements[i][k] * data->N->elements[k][j];
+    //         }
+    //         data->result->elements[i][j] = d;
+    //     }
+    // }
+    return NULL;
+}
+
+Matrix *Add_matrix_threads(const Matrix *M, const Matrix *N, int thread_count, int operation)
+{
     Matrix *result = malloc(sizeof(Matrix));
-    result->rows = M->rows;
-    result->cols = M->cols;
-    result->elements = malloc(result->rows * sizeof(double *));
+    if (operation == 1)
+    {
+        if (M->rows != N->rows || M->cols != N->cols)
+        {
+            fprintf(stderr, "Invalid size. (%d, %d) and (%d, %d)\n", M->rows, M->cols,
+                    N->rows, N->cols);
+            free_matrix(result);
+            return NULL; // No se pueden sumar matrices de diferentes tamaños
+        }
+        result->rows = M->rows;
+        result->cols = M->cols;
+        result->elements = malloc(result->rows * sizeof(double *));
+    }
+    else
+    {
+        if (M->cols != N->rows)
+        {
+            fprintf(stderr, "Invalid size. (%d, %d) and (%d, %d)\n", M->rows, M->cols,
+                    N->rows, N->cols);
+            free_matrix(result);
+            return NULL; // Dimensiones invalidas para realizar producto punto
+        }
+        result->rows = M->cols;
+        result->cols = N->rows;
+        result->elements = malloc(result->rows * sizeof(double *));
+    }
+
     for (int i = 0; i < result->rows; i++)
     {
         result->elements[i] = malloc(result->cols * sizeof(double));
@@ -69,8 +123,12 @@ Matrix *Add_matrix_threads(const Matrix *M, const Matrix *N, int thread_count)
         thread_args[thread].M = M;
         thread_args[thread].N = N;
         thread_args[thread].result = result;
-
-        pthread_create(&thread_handles[thread], NULL, Add_matrix, (void *)&thread_args[thread]);
+        if(operation == 1){
+            pthread_create(&thread_handles[thread], NULL, Add_matrix, (void *)&thread_args[thread]);
+        }else{
+            pthread_create(&thread_handles[thread], NULL, Dot_matrix, (void *)&thread_args[thread]);
+        }
+        
     }
 
     // Espera a que finalicen los hilos
@@ -96,7 +154,7 @@ int main()
             M->elements[i][j] = 1;
         }
     }
-    Matrix *N = create_matrix(3, 3);
+    Matrix *N = create_matrix(6, 3);
     for (int i = 0; i < N->rows; i++)
     {
         for (int j = 0; j < N->cols; j++)
@@ -105,14 +163,18 @@ int main()
         }
     }
 
-    Matrix *result = Add_matrix_threads(M, N, 3);
+    Matrix *result = Add_matrix_threads(M, N, 3, 1);
+
+    Matrix *result2 = Add_matrix_threads(M, N, 3, 2);
 
     print_matrix(result);
+    print_matrix(result2);
 
     // Libera la memoria
     free_matrix(M);
     free_matrix(N);
     free_matrix(result);
+    free_matrix(result2);
 
     return 0;
 }
