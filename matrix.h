@@ -4,14 +4,15 @@
 #include <stdint.h>
 
 // Estructura para los argumentos que se pasarán a los hilos
+
 typedef struct
 {
-    int **mat1;
-    int **mat2;
-    int **result;
-    int rows;
-    int cols;
-} thread_args;
+    int thread_id;
+    int thread_count;
+    const Matrix *M;
+    const Matrix *N;
+    Matrix *result;
+} Thread_data;
 
 typedef struct Vector Vector;
 struct Vector

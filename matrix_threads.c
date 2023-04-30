@@ -6,14 +6,7 @@
 /*
 Para compilar este ejemplo:  gcc -o exe  matrix.c matrix_threads.c
 */
-typedef struct
-{
-    int thread_id;
-    int thread_count;
-    const Matrix *M;
-    const Matrix *N;
-    Matrix *result;
-} Thread_data;
+
 
 void *Add_matrix(void *thread_arg)
 {
@@ -23,13 +16,7 @@ void *Add_matrix(void *thread_arg)
     // Calcula el tamaño de la sección que cada hilo sumará
     int section_size = data->result->cols / data->thread_count;
     int cols_extra = data->result->cols % data->thread_count;
-    // int start_col = data->thread_id * section_size;
-    // int end_col = start_col + section_size;
 
-    // puts("M:");
-    // print_matrix(data->M);
-    // puts("N:");
-    // print_matrix(data->N);
     int start_col = data->thread_id * section_size + (data->thread_id < cols_extra ? data->thread_id : cols_extra); //Revisar al final de este archivo para ver la forma extendida
     int end_col = start_col + section_size - 1 + (data->thread_id < cols_extra ? 1 : 0); //Revisar al final de este archivo para ver la forma extendida
 
@@ -109,7 +96,7 @@ int main()
             M->elements[i][j] = 1;
         }
     }
-    Matrix *N = create_matrix(6, 3);
+    Matrix *N = create_matrix(3, 3);
     for (int i = 0; i < N->rows; i++)
     {
         for (int j = 0; j < N->cols; j++)

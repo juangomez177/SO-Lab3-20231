@@ -58,21 +58,6 @@ Matrix *create_matrix(int rows, int cols)
     return M;
 }
 
-// Función para generar una matriz aleatoria de tamaño rows x cols
-int **generate_random_matrix(int rows, int cols)
-{
-    int **matrix = malloc(rows * sizeof(int *));
-    for (int i = 0; i < rows; i++)
-    {
-        matrix[i] = malloc(cols * sizeof(int));
-        for (int j = 0; j < cols; j++)
-        {
-            matrix[i][j] = (double)rand(); // Generar número aleatorio
-        }
-    }
-    return matrix;
-}
-
 double sqrt(double number)
 {
     float temp, sqrt;
