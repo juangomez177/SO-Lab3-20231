@@ -254,6 +254,7 @@ Matrix *dot_matrix(const Matrix *M, const Matrix *N)
     return A;
 }
 
+
 Vector *matrix_col_mean(const Matrix *M)
 {
     Vector *V = create_vector(1, M->cols);
