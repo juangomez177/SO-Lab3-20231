@@ -37,27 +37,6 @@ int main()
     Vector *v2 = create_vector(1, 3);
     init_vector_rand(v2);
 
-    // Vector* result = dot_vector_matrix(v, M);
-    // printf("Vector resultante: ");
-    // print_vector(result);
-
-    printf("Matrix: ");
-    print_matrix(M);
-
-    copy_matrix(M4,M);
-
-    matrix_col_normalize_standard_score(M);
-
-    printf("\nMatrix normalized: \n");
-    print_matrix(M);
-
-    printf("\nMatrix 4: \n");
-    print_matrix(M4);
-    matrix_col_normalize_min_max(M4);
-
-    printf("\nMatrix 4 min max: \n");
-    print_matrix(M4);
-
     free_matrix(M);
     free_matrix(M2);
     free_matrix(M3);

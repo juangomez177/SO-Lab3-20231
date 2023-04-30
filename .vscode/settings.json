@@ -1,6 +1,5 @@
 {
     "files.associations": {
-        "stdio.h": "c",
-        "matrix.h": "c"
+        "time.h": "c"
     }
 }
