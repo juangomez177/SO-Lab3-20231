@@ -160,8 +160,12 @@ int main(int argc, char *argv[])
             N->elements[i][j] = 2;
         }
     }
-    Menu_operations(option, &escalar, &rows1, &rows2, &cols1, &cols2, &M, &N);
+    Menu_operations(option, &escalar, &rows1, &cols1, &rows2, &cols2, &M, &N);
+    exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+    exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+    printf("Teimpo de ejecución: %f ms \n", exec_time);
 
+    
     // Libera la memoria
     free_matrix(M);
     free_matrix(N);
