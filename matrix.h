@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-// Estructura para los argumentos que se pasarán a los hilos
 
 typedef struct Vector Vector;
 struct Vector
@@ -21,6 +20,8 @@ struct Matrix
     double **elements;
 };
 
+extern Matrix *R;
+
 typedef struct Thread_data Thread_data;
 struct Thread_data
 {
@@ -32,6 +33,7 @@ struct Thread_data
     Matrix *result;
     Vector *V;
 };
+
 
 //Creacion y liberacion de vectores y matrices
 Vector *create_vector(int rows, int cols);
