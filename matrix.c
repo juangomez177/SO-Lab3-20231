@@ -4,8 +4,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <time.h>
-// #include <math.h>
 
 Vector *create_vector(int rows, int cols)
 {
@@ -79,7 +79,6 @@ double sqrt(double number)
         // and so on
         sqrt = (number / temp + temp) / 2;
     }
-
     return sqrt;
 }
 
@@ -186,187 +185,443 @@ Vector *add_vector(const Vector *a, const Vector *b)
     return r;
 }
 
-// Vector *dot_vector_matrix(const Vector *v, const Matrix *M)
-// {
-//     if (v->size != M->rows)
-//     {
-//         fprintf(stderr, "Invalid size. %d and (%d, %d)\n", v->size, M->rows, M->cols);
-//         return NULL;
-//     }
-
-//     Vector *r = create_vector(M->cols);
-//     for (int i = 0; i < r->size; ++i)
-//     {
-//         double d = 0.0;
-//         for (int j = 0; j < M->rows; ++j)
-//         {
-//             d += (v->elements[j] * M->elements[j][i]);
-//         }
-//         r->elements[i] = d;
-//     }
-
-//     return r;
-// }
-
-Matrix *add_matrix(const Matrix *M, const Matrix *N)
+void *Add_matrix(void *thread_arg)
 {
-    if (M->rows != N->rows || M->cols != N->cols)
-    {
-        fprintf(stderr, "Invalid size. (%d, %d) and (%d, %d)\n", M->rows, M->cols,
-                N->rows, N->cols);
-        return NULL;
-    }
+    Thread_data *data = (Thread_data *)thread_arg;
 
-    Matrix *R = create_matrix(M->rows, M->cols);
-    for (int i = 0; i < M->rows; ++i)
+    // Calcula el tamaño de la sección que cada hilo sumará
+    printf("thread id: %d\n", data->thread_id);
+
+    // Suma las secciones correspondientes
+    for (int i = data->thread_id; i < data->result->cols; i += data->thread_count)
     {
-        for (int j = 0; j < M->cols; ++j)
+        for (int j = 0; j < data->result->rows; j++)
         {
-            R->elements[i][j] = M->elements[i][j] + N->elements[i][j];
+            printf("M element[%d][%d]: %f\n", j, i, data->M->elements[j][i]);
+            printf("N element[%d][%d]: %f\n", j, i, data->N->elements[j][i]);
+            data->result->elements[j][i] = data->M->elements[j][i] + data->N->elements[j][i];
         }
     }
-    return R;
+    return NULL;
 }
 
-Matrix *dot_matrix(const Matrix *M, const Matrix *N)
+void *Dot_matrix(void *thread_arg)
 {
-    if (M->cols != N->rows)
-    {
-        fprintf(stderr, "Invalid size. (%d, %d) and (%d, %d)\n", M->rows, M->cols,
-                N->rows, N->cols);
-        return NULL;
-    }
+    Thread_data *data = (Thread_data *)thread_arg;
 
-    Matrix *A = create_matrix(M->rows, N->cols);
-    for (int i = 0; i < M->rows; ++i)
+    // Calcula el tamaño de la sección que cada hilo multiplicará
+    for (int k = data->thread_id; k < data->result->cols; k += data->thread_count) // cambia cols de N y cols de r
     {
-        for (int j = 0; j < N->cols; ++j)
+        for (int i = 0; i < data->M->rows; i++) // cambia rows de M y rows de r
         {
             double d = 0.0;
-            for (int k = 0; k < M->cols; ++k)
+            for (int j = 0; j < data->N->rows; j++) // cambia cols de M y rows de N
             {
-                d += M->elements[i][k] * N->elements[k][j];
+                d += data->M->elements[i][j] * data->N->elements[j][k];
             }
-            A->elements[i][j] = d;
+            data->result->elements[i][k] = d;
         }
     }
-
-    return A;
+    return NULL;
 }
 
-
-Vector *matrix_col_mean(const Matrix *M)
+void *Matrix_col_mean(void *thread_arg)
 {
-    Vector *V = create_vector(1, M->cols);
+    Thread_data *data = (Thread_data *)thread_arg;
 
-    for (int i = 0; i < M->cols; ++i)
+    for (int i = data->thread_id; i < data->V->cols; i += data->thread_count)
     {
         double sum = 0.0;
-        for (int j = 0; j < M->rows; ++j)
+        for (int j = 0; j < data->M->rows; ++j)
         {
-            sum += M->elements[j][i];
+            sum += data->M->elements[j][i];
         }
-        V->elements[i] = sum / M->rows;
+        data->V->elements[i] = sum / data->M->rows;
     }
-
-    return V;
 }
 
-Vector *matrix_col_sum(const Matrix *M)
+void *Matrix_col_max(void *thread_arg)
 {
-    // Revisar esta parte
-    Vector *v = create_vector(1, M->cols);
+    Thread_data *data = (Thread_data *)thread_arg;
 
-    for (int i = 0; i < M->cols; ++i)
+    for (int i = data->thread_id; i < data->V->cols; i += data->thread_count)
+    {
+        double max = data->M->elements[0][i];
+        for (int j = 0; j < data->M->rows; ++j)
+        {
+            if (max < data->M->elements[j][i])
+            {
+                max = data->M->elements[j][i];
+            }
+        }
+        data->V->elements[i] = max;
+    }
+}
+
+void *Matrix_col_min(void *thread_arg)
+{
+    Thread_data *data = (Thread_data *)thread_arg;
+
+    for (int i = data->thread_id; i < data->V->cols; i += data->thread_count)
+    {
+        double min = data->M->elements[0][i];
+        for (int j = 0; j < data->M->rows; ++j)
+        {
+            if (min > data->M->elements[j][i])
+            {
+                min = data->M->elements[j][i];
+            }
+        }
+        data->V->elements[i] = min;
+    }
+}
+
+void *Matrix_col_sum(void *thread_arg)
+{
+    Thread_data *data = (Thread_data *)thread_arg;
+
+    for (int i = data->thread_id; i < data->M->cols; i += data->thread_count)
     {
         double sum = 0.0;
-        for (int j = 0; j < M->rows; ++j)
+        for (int j = 0; j < data->M->rows; ++j)
         {
-            sum += M->elements[j][i];
+            sum += data->M->elements[j][i];
         }
-        v->elements[i] = sum;
+        data->V->elements[i] = sum;
     }
-
-    return v;
 }
 
-Vector *matrix_col_max(const Matrix *M)
+void *Matrix_col_vrz(void *thread_arg)
 {
-    Vector *v = create_vector(1, M->cols);
-    for (int i = 0; i < M->cols; ++i)
-    {
-        double max = M->elements[0][i];
-        for (int j = 0; j < M->rows; ++j)
-        {
-            if (max < M->elements[j][i])
-            {
-                max = M->elements[j][i];
-            }
-        }
-        v->elements[i] = max;
-    }
-    return v;
-}
+    Thread_data *data = (Thread_data *)thread_arg;
 
-Vector *matrix_col_min(const Matrix *M)
-{
-    Vector *v = create_vector(1, M->cols);
-    for (int i = 0; i < M->cols; ++i)
-    {
-        double min = M->elements[0][i];
-        for (int j = 0; j < M->rows; ++j)
-        {
-            if (min > M->elements[j][i])
-            {
-                min = M->elements[j][i];
-            }
-        }
-        v->elements[i] = min;
-    }
-    return v;
-}
+    Vector *r = init_vector_threads(data->M, data->thread_count, 1);
+    Vector *v = create_vector(1, data->M->cols);
+    Matrix *N = create_matrix(data->M->rows, data->M->cols);
 
-Vector *matrix_col_vrz(const Matrix *M)
-{
-    Vector *r = matrix_col_mean(M);
-    Vector *v = create_vector(1, M->cols);
-    Matrix *N = create_matrix(M->rows, M->cols);
-
-    for (int i = 0; i < M->cols; ++i)
+    for (int i = data->thread_id; i < data->M->cols; i += data->thread_count)
     {
-        for (int j = 0; j < M->rows; ++j)
+        for (int j = 0; j < data->M->rows; ++j)
         {
-            N->elements[j][i] = M->elements[j][i] - r->elements[i];
+            N->elements[j][i] = data->M->elements[j][i] - r->elements[i];
             N->elements[j][i] *= N->elements[j][i];
         }
     }
-    v = matrix_col_sum(N);
-    for (int i = 0; i < v->rows + v->cols - 1; ++i)
+    v = init_vector_threads(N, data->thread_count, 4);
+    for (int i = data->thread_id; i < v->rows + v->cols - 1; i += data->thread_count)
     {
-        v->elements[i] = v->elements[i] / N->rows;
+        data->V->elements[i] = v->elements[i] / N->rows;
     }
-    return v;
 }
 
-Vector *matrix_col_std(const Matrix *M)
+void *Matrix_col_std(void *thread_arg)
 {
-    Vector *v = matrix_col_vrz(M);
-    for (int i = 0; i < v->rows + v->cols - 1; ++i)
+    Thread_data *data = (Thread_data *)thread_arg;
+    Vector *v = init_vector_threads(data->M, data->thread_count, 5); // matrix_col_vrz(data->M);
+
+    for (int i = data->thread_id; i < data->V->rows + data->V->cols - 1; i += data->thread_count)
     {
-        v->elements[i] = sqrt(v->elements[i]);
+        data->V->elements[i] = sqrt(v->elements[i]);
     }
-    return v;
 }
 
-void scalar_matrix(Matrix *M, double k)
+void *Matrix_col_normalized_standard_score(void *thread_arg)
 {
-    for (int i = 0; i < M->rows; ++i)
+    Thread_data *data = (Thread_data *)thread_arg;
+    Vector *mean = init_vector_threads(data->M, data->thread_count, 1); // matrix_col_mean(M);
+    Vector *std_dev = init_vector_threads(data->M, data->thread_count, 6);
+
+    // Normalization of each column
+    for (int i = data->thread_id; i < data->M->cols; i += data->thread_count)
     {
-        for (int j = 0; j < M->cols; ++j)
+        // Normalize each value
+        for (int j = 0; j < data->M->rows; j++)
         {
-            M->elements[i][j] *= k;
+            data->M->elements[j][i] = (data->M->elements[j][i] - mean->elements[i]) / std_dev->elements[i];
         }
     }
+}
+
+void *Matrix_col_normalized_min_max(void *thread_arg)
+{
+    Thread_data *data = (Thread_data *)thread_arg;
+    Vector *min = init_vector_threads(data->M, data->thread_count, 3); // matrix_col_min(M);
+    Vector *max = init_vector_threads(data->M, data->thread_count, 2); // matrix_col_max(M);
+
+    // Normalizamos la matriz utilizando el método de Min-Max
+    for (int i = data->thread_id; i < data->M->cols; i += data->thread_count)
+    {
+        for (int j = 0; j < data->M->rows; j++)
+        {
+            data->M->elements[j][i] = (data->M->elements[j][i] - min->elements[i]) / (max->elements[i] - min->elements[i]);
+        }
+    }
+}
+
+void *Scalar_matrix(void *thread_arg)
+{
+    Thread_data *data = (Thread_data *)thread_arg;
+
+    for (int i = data->thread_id; i < data->M->cols; i += data->thread_count)
+    {
+        for (int j = 0; j < data->M->rows; ++j)
+        {
+            data->M->elements[j][i] *= data->k;
+        }
+    }
+}
+
+void *init_matrix_threads_void(const Matrix *M, int thread_count, int operation, double k)
+{
+    if (thread_count > M->cols)
+    {
+        fprintf(stderr, "Número de hilos inválido: %d > numero de columnas de la matrix resultado: %d\n", thread_count, M->cols);
+        return NULL;
+    }
+    pthread_t *thread_handles = malloc(thread_count * sizeof(pthread_t));
+    Thread_data *thread_args = malloc(thread_count * sizeof(Thread_data));
+
+    for (int thread = 0; thread < thread_count; thread++)
+    {
+        thread_args[thread].thread_id = thread;
+        thread_args[thread].thread_count = thread_count;
+        thread_args[thread].M = M;
+        thread_args[thread].k = k;
+
+        if (operation == 1)
+        {
+            if (thread_count == 1)
+            {
+                // printf("secuencial\n");
+
+                Matrix_col_normalized_standard_score((void *)&thread_args[thread]);
+            }
+            else
+            {
+                pthread_create(&thread_handles[thread], NULL, Matrix_col_normalized_standard_score, (void *)&thread_args[thread]);
+            }
+        }
+        else if (operation == 2)
+        {
+            if (thread_count == 1)
+            {
+                Matrix_col_normalized_min_max((void *)&thread_args[thread]);
+            }
+            else
+            {
+                pthread_create(&thread_handles[thread], NULL, Matrix_col_normalized_min_max, (void *)&thread_args[thread]);
+            }
+        }
+        else if (operation == 3)
+        {
+            if (thread_count == 1)
+            {
+                Scalar_matrix((void *)&thread_args[thread]);
+            }
+            else
+            {
+                pthread_create(&thread_handles[thread], NULL, Scalar_matrix, (void *)&thread_args[thread]);
+            }
+        }
+    }
+
+    if (thread_count != 1)
+    {
+        for (int thread = 0; thread < thread_count; thread++)
+        {
+            pthread_join(thread_handles[thread], NULL);
+        }
+    }
+
+    free(thread_handles);
+    free(thread_args);
+}
+
+Vector *init_vector_threads(const Matrix *M, int thread_count, int operation)
+{
+    Vector *result = create_vector(1, M->cols); // malloc(sizeof(Vector));
+
+    if (thread_count > result->cols)
+    {
+        fprintf(stderr, "Número de hilos inválido: %d > numero de columnas de la matrix resultado: %d\n", thread_count, result->rows);
+        free_vector(result);
+        return NULL;
+    }
+
+    pthread_t *thread_handles = malloc(thread_count * sizeof(pthread_t));
+    Thread_data *thread_args = malloc(thread_count * sizeof(Thread_data));
+
+    // Crea los hilos
+    for (int thread = 0; thread < thread_count; thread++)
+    {
+        thread_args[thread].thread_id = thread;
+        thread_args[thread].thread_count = thread_count;
+        thread_args[thread].M = M;
+        thread_args[thread].V = result;
+
+        if (operation == 1)
+        {
+            if (thread_count == 1)
+            {
+                Matrix_col_mean((void *)&thread_args[thread]);
+            }
+            else
+            {
+                pthread_create(&thread_handles[thread], NULL, Matrix_col_mean, (void *)&thread_args[thread]);
+            }
+        }
+        else if (operation == 2)
+        {
+            if (thread_count == 1)
+            {
+                Matrix_col_max((void *)&thread_args[thread]);
+            }
+            else
+            {
+                pthread_create(&thread_handles[thread], NULL, Matrix_col_max, (void *)&thread_args[thread]);
+            }
+        }
+        else if (operation == 3)
+        {
+            if (thread_count == 1)
+            {
+                Matrix_col_min((void *)&thread_args[thread]);
+            }
+            else
+            {
+                pthread_create(&thread_handles[thread], NULL, Matrix_col_min, (void *)&thread_args[thread]);
+            }
+        }
+        else if (operation == 4)
+        {
+            if (thread_count == 1)
+            {
+                Matrix_col_sum((void *)&thread_args[thread]);
+            }
+            else
+            {
+                pthread_create(&thread_handles[thread], NULL, Matrix_col_sum, (void *)&thread_args[thread]);
+            }
+        }
+        else if (operation == 5)
+        {
+            if (thread_count == 1)
+            {
+                Matrix_col_vrz((void *)&thread_args[thread]);
+            }
+            else
+            {
+                pthread_create(&thread_handles[thread], NULL, Matrix_col_vrz, (void *)&thread_args[thread]);
+            }
+        }
+        else if (operation == 6)
+        {
+            if (thread_count == 1)
+            {
+                Matrix_col_std((void *)&thread_args[thread]);
+            }
+            else
+            {
+                pthread_create(&thread_handles[thread], NULL, Matrix_col_std, (void *)&thread_args[thread]);
+            }
+        }
+    }
+
+    // Espera a que finalicen los hilos
+    if (thread_count != 1)
+    {
+        for (int thread = 0; thread < thread_count; thread++)
+        {
+            pthread_join(thread_handles[thread], NULL);
+        }
+    }
+
+    free(thread_handles);
+    free(thread_args);
+    return result;
+}
+
+Matrix *init_matrix_threads(const Matrix *M, const Matrix *N, int thread_count, int operation)
+{
+    Matrix *result = create_matrix(M->rows, N->cols); // malloc(sizeof(Matrix));
+    if (operation == 1)
+    {
+        if (M->rows != N->rows || M->cols != N->cols)
+        {
+            fprintf(stderr, "Dimensiones invalidas. (%d, %d) & (%d, %d)\n", M->rows, M->cols,
+                    N->rows, N->cols);
+            free_matrix(result);
+            return NULL; // No se pueden sumar matrices de diferentes tamaños
+        }
+    }
+    else
+    {
+        if (M->cols != N->rows)
+        {
+            fprintf(stderr, "Dimensiones invalidas. (%d, %d) & (%d, %d)\n", M->rows, M->cols,
+                    N->rows, N->cols);
+            free_matrix(result);
+            return NULL; // No se pueden multiplicar matrices con estas dimensiones
+        }
+    }
+    if (thread_count > result->cols)
+    {
+        fprintf(stderr, "Número de hilos inválido: %d > numero de columnas de la matrix resultado: %d\n", thread_count, result->cols);
+        free_matrix(result);
+        return NULL;
+    }
+
+    pthread_t *thread_handles = malloc(thread_count * sizeof(pthread_t));
+    Thread_data *thread_args = malloc(thread_count * sizeof(Thread_data));
+
+    // Crea los hilos
+    for (int thread = 0; thread < thread_count; thread++)
+    {
+        thread_args[thread].thread_id = thread;
+        thread_args[thread].thread_count = thread_count;
+        thread_args[thread].M = M;
+        thread_args[thread].N = N;
+        thread_args[thread].result = result;
+
+        if (operation == 1)
+        {
+            if (thread_count == 1)
+            {
+                Add_matrix((void *)&thread_args[thread]);
+            }
+            else
+            {
+
+                pthread_create(&thread_handles[thread], NULL, Add_matrix, (void *)&thread_args[thread]);
+            }
+        }
+        else
+        {
+            if (thread_count == 1)
+            {
+                Dot_matrix((void *)&thread_args[thread]);
+            }
+            else
+            {
+
+                pthread_create(&thread_handles[thread], NULL, Dot_matrix, (void *)&thread_args[thread]);
+            }
+        }
+    }
+
+    // Espera a que finalicen los hilos
+    if (thread_count > 1)
+    {
+        for (int thread = 0; thread < thread_count; thread++)
+        {
+            pthread_join(thread_handles[thread], NULL);
+        }
+    }
+
+    free(thread_handles);
+    free(thread_args);
+
+    return result;
 }
 
 void scalar_vector(Vector *V, double k)
@@ -374,37 +629,6 @@ void scalar_vector(Vector *V, double k)
     for (int i = 0; i < V->rows + V->cols - 1; ++i)
     {
         V->elements[i] *= k;
-    }
-}
-
-void matrix_col_normalize_standard_score(Matrix *M)
-{
-    Vector *mean = matrix_col_mean(M);
-    Vector *std_dev = matrix_col_std(M);
-
-    // Normalization of each column
-    for (int i = 0; i < M->cols; i++)
-    {
-        // Normalize each value
-        for (int j = 0; j < M->rows; j++)
-        {
-            M->elements[j][i] = (M->elements[j][i] - mean->elements[i]) / std_dev->elements[i];
-        }
-    }
-}
-
-void matrix_col_normalize_min_max(Matrix *M)
-{
-    Vector *min = matrix_col_min(M);
-    Vector *max = matrix_col_max(M);
-
-    // Normalizamos la matriz utilizando el método de Min-Max
-    for (int i = 0; i < M->cols; i++)
-    {
-        for (int j = 0; j < M->rows; j++)
-        {
-            M->elements[j][i] = (M->elements[j][i] - min->elements[i]) / (max->elements[i] - min->elements[i]);
-        }
     }
 }
 
