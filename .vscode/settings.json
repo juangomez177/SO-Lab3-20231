@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "time.h": "c",
-        "matrix.h": "c"
+        "matrix.h": "c",
+        "stdint.h": "c"
     }
 }
