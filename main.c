@@ -5,15 +5,21 @@
 #include <sys/time.h>
 #include <assert.h>
 #include "matrix.h"
+#include <string.h>
 
 int thread_count;
 struct timeval t_start, t_end;
 double exec_time;
 int option;       // Número de Operación a realizar
-int hilos;        // Número de hilos
+int hilos = 2;    // Número de hilos
 double escalar;   // Número escalar
 int rows1, cols1; // Número de fila y columnas respectivamente del primer operando
 int rows2, cols2; // Número de fila y columnas respectivamente del segundo operando
+Matrix *A;
+Matrix *B;
+Matrix *result_m;
+Vector *result_v;
+int is_file = 0; // Para comprobar si la lectura de matrices es por archivo y evitar crear matrices aleatorias
 
 // Función que gestiona los flags
 int Menu_flags(int argc, char *argv[])
@@ -31,7 +37,7 @@ int Menu_flags(int argc, char *argv[])
         case 'e':
             char *endptr;
             printf("Número escalar: %s\n", optarg);
-            double escalar = strtod(optarg, &endptr);
+            escalar = strtod(optarg, &endptr);
             break;
         case 'f':
             printf("Número de fila del primer operando: %s\n", optarg);
@@ -55,6 +61,82 @@ int Menu_flags(int argc, char *argv[])
             break;
         case 'p':
             printf("Path del archivo con los operandos de la operación a realizar: %s\n", optarg);
+
+            // lectura del archivo
+            is_file = 1;
+
+            printf("Archivo: %s\n", optarg);
+
+            FILE *file = fopen(optarg, "r");
+            if (!file)
+            {
+                perror("Error al abrir el archivo");
+                return 1;
+            }
+
+            char op[10];
+            int rows, cols;
+
+            while (fscanf(file, "%s", op) == 1)
+            {
+                if (strcmp(op, "s") == 0)
+                {
+                    fscanf(file, "%lf", &escalar);
+                }
+                else if (strcmp(op, "op1") == 0)
+                {
+                    fscanf(file, "%d %d", &rows, &cols);
+                    Matrix *m = (Matrix *)malloc(sizeof(Matrix));
+                    m->rows = rows;
+                    m->cols = cols;
+                    m->elements = (double **)malloc(rows * sizeof(double *));
+                    for (int i = 0; i < rows; i++)
+                    {
+                        m->elements[i] = (double *)malloc(cols * sizeof(double));
+                        for (int j = 0; j < cols; j++)
+                        {
+                            fscanf(file, "%lf", &(m->elements[i][j]));
+                        }
+                    }
+                    A = m;
+                }
+                else if (strcmp(op, "op2") == 0)
+                {
+                    fscanf(file, "%d %d", &rows, &cols);
+                    Matrix *m = (Matrix *)malloc(sizeof(Matrix));
+                    m->rows = rows;
+                    m->cols = cols;
+                    m->elements = (double **)malloc(rows * sizeof(double *));
+                    for (int i = 0; i < rows; i++)
+                    {
+                        m->elements[i] = (double *)malloc(cols * sizeof(double));
+                        for (int j = 0; j < cols; j++)
+                        {
+                            fscanf(file, "%lf", &(m->elements[i][j]));
+                        }
+                    }
+                    B = m;
+                }
+                else
+                {
+                    printf("Operación no reconocida: %s\n", op);
+                }
+            }
+
+            fclose(file);
+
+            // Imprime los valores leídos
+            printf("scalar: %lf\n", escalar);
+
+            printf("-------------matriz de archivo ----------------\n");
+
+            print_matrix(A);
+
+            printf("--------------matriz 2 de archivo ---------------\n");
+
+            print_matrix(B);
+            printf("-----------------------------\n");
+
             break;
         case 'o':
             option = strtol(optarg, NULL, 10);
@@ -71,97 +153,392 @@ int Menu_flags(int argc, char *argv[])
             exit(EXIT_FAILURE);
         }
     }
-    //printf("h = %d, e = %d, f = %d, c = %d, r = %d, s = %d, o = %d\n", hilos, escalar, rows1, cols1, rows2, cols2, option);
+    // printf("h = %d, e = %d, f = %d, c = %d, r = %d, s = %d, o = %d\n", hilos, escalar, rows1, cols1, rows2, cols2, option);
     return 0;
 }
 
-void Menu_operations(int h, int option, double e, int f, int c, int r, int s, Matrix *A, Matrix *B)
+void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
 {
+
     switch (option)
     {
     case 1:
         printf("Calculando la media de cada columna de la matriz A(fxc): %dx%d\n", f, c);
+
+        printf("-------------------Creación de la matriz---------------\n");
+        if (is_file == 0)
+        {
+            A = create_matrix(rows1, cols1);
+            init_matrix_rand(A);
+        }
+
+        print_matrix(A);
+
+        // Secuencial
         gettimeofday(&t_start, NULL);
-            init_vector_threads(A, h, 1);
+        result_v = init_vector_threads(A, 1, 1);
+        printf("------------VECTOR RESULTANTE---------------\n");
+        print_vector(result_v);
+
         gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución secuencial: %f ms \n", exec_time);
+
+        // Hilos
+        gettimeofday(&t_start, NULL);
+        result_v = init_vector_threads(A, h, 1);
+        printf("------------VECTOR RESULTANTE---------------\n");
+        print_vector(result_v);
+
+        gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
+
+        free_matrix(A);
+
         break;
     case 2:
         printf("Calculando la varianza de cada columna de la matriz A(fxc): %dx%d\n", f, c);
+        printf("-------------------Creación de la matriz---------------\n");
+        if (is_file == 0)
+        {
+            A = create_matrix(rows1, cols1);
+            init_matrix_rand(A);
+        }
+        print_matrix(A);
+
+        // Secuencial
         gettimeofday(&t_start, NULL);
-        init_vector_threads(A, h, 2);
+        result_v = init_vector_threads(A, 1, 2);
+        printf("------------VECTOR RESULTANTE---------------\n");
+        print_vector(result_v);
+
         gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución secuencial: %f ms \n", exec_time);
+
+        // Hilos
+        gettimeofday(&t_start, NULL);
+        result_v = init_vector_threads(A, h, 2);
+        printf("------------VECTOR RESULTANTE---------------\n");
+        print_vector(result_v);
+
+        gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
+
+        free_matrix(A);
+
         break;
     case 3:
         printf("Calculando la variación estandar de cada columna de la matriz A(fxc): %dx%d\n", f, c);
+
+        printf("-------------------Creación de la matriz---------------\n");
+        if (is_file == 0)
+        {
+            A = create_matrix(rows1, cols1);
+            init_matrix_rand(A);
+        }
+        print_matrix(A);
+
+        // Secuencial
         gettimeofday(&t_start, NULL);
-        init_vector_threads(A, h, 3);
+        result_v = init_vector_threads(A, 1, 3);
+        printf("------------VECTOR RESULTANTE---------------\n");
+        print_vector(result_v);
+
         gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución secuencial: %f ms \n", exec_time);
+
+        // Hilos
+        gettimeofday(&t_start, NULL);
+        result_v = init_vector_threads(A, h, 3);
+        printf("------------VECTOR RESULTANTE---------------\n");
+        print_vector(result_v);
+
+        gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
+        free_matrix(A);
+
         break;
     case 4:
+        printf("-------------------Creación de la matriz---------------\n");
+        if (is_file == 0)
+        {
+            A = create_matrix(rows1, cols1);
+            init_matrix_rand(A);
+        }
+        print_matrix(A);
+
         printf("Calculando el valor minimo y el valor maximo de cada columna de la matriz A(fxc): %dx%d\n", f, c);
+        // Secuencial
         gettimeofday(&t_start, NULL);
-        init_vector_threads(A, h, 4);
+        result_v = init_vector_threads(A, 1, 4);
+        printf("------------VECTOR RESULTANTE---------------\n");
+        print_vector(result_v);
+
         gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución secuencial: %f ms \n", exec_time);
+
+        // Hilos
+        gettimeofday(&t_start, NULL);
+        result_v = init_vector_threads(A, h, 4);
+        printf("------------VECTOR RESULTANTE---------------\n");
+        print_vector(result_v);
+
+        gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
+
+        free_matrix(A);
+
         break;
     case 5:
         printf("Calculando la suma de la matriz A(fxc): %dx%d con la matriz B(rxs): '%dx%d\n'", f, c, r, s);
+
+        printf("-------------------Creación de las matrices---------------\n");
+        if (is_file == 0)
+        {
+            A = create_matrix(rows1, cols1);
+            B = create_matrix(rows2, cols2);
+            init_matrix_rand(A);
+            init_matrix_rand(B);
+        }
+        print_matrix(A);
+        print_matrix(B);
+
+        // Secuencial
         gettimeofday(&t_start, NULL);
-        init_matrix_threads(A, B, h, 5);
+        result_m = init_matrix_threads(A, B, 1, 5);
+        printf("------------MATRIZ RESULTANTE-----------------\n");
+        print_matrix(result_m);
+
         gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución secuencial: %f ms \n", exec_time);
+
+        // Hilos
+        gettimeofday(&t_start, NULL);
+        result_m = init_matrix_threads(A, B, h, 5);
+        printf("------------MATRIZ RESULTANTE-----------------\n");
+        print_matrix(result_m);
+
+        gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
+
+        free_matrix(A);
+        free_matrix(B);
+
         break;
     case 6:
         printf("Calculando el producto punto de la matriz B(fxc): %dx%d con la matriz B(rxs): '%dx%d\n'", f, c, r, s);
+
+        printf("-------------------Creación de las matrices---------------\n");
+        if (is_file == 0)
+        {
+            A = create_matrix(rows1, cols1);
+            B = create_matrix(rows2, cols2);
+            init_matrix_rand(A);
+            init_matrix_rand(B);
+        }
+        print_matrix(A);
+        print_matrix(B);
+
+        // Secuencial
         gettimeofday(&t_start, NULL);
-        init_matrix_threads(A, B, h, 6);
+        result_m = init_matrix_threads(A, B, 1, 6);
+        printf("------------MATRIZ RESULTANTE-----------------\n");
+        print_matrix(result_m);
+
         gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución secuencial: %f ms \n", exec_time);
+
+        // Hilos
+        gettimeofday(&t_start, NULL);
+        result_m = init_matrix_threads(A, B, h, 6);
+        printf("------------MATRIZ RESULTANTE-----------------\n");
+        print_matrix(result_m);
+
+        gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
+
+        free_matrix(A);
+        free_matrix(B);
+
         break;
     case 7:
-        printf("Calculando el producto de un escalar %d con la matriz A(fxc): '%dx%d\n'", e, f, c);
+        printf("Calculando el producto de un escalar %f con la matriz A(fxc): '%dx%d\n'", e, f, c);
+        printf("-------------------Creación de las matrices---------------\n");
+        if (is_file == 0)
+        {
+            A = create_matrix(rows1, cols1);
+            B = create_matrix(rows2, cols2);
+            init_matrix_rand(A);
+            init_matrix_rand(B);
+        }
+        print_matrix(A);
+        print_matrix(B);
+
+        // Secuencial
         gettimeofday(&t_start, NULL);
-        init_matrix_threads_void(A, h, 7, e);
+        result_m = init_matrix_threads_void(A, 1, 7, e);
+        printf("------------MATRIZ RESULTANTE-----------------\n");
+        print_matrix(result_m);
+
         gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución secuencial: %f ms \n", exec_time);
+
+        // Hilos
+        gettimeofday(&t_start, NULL);
+        result_m = init_matrix_threads_void(A, h, 7, e);
+        printf("------------MATRIZ RESULTANTE-----------------\n");
+        print_matrix(result_m);
+
+        gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
+
+        free_matrix(A);
+        free_matrix(B);
+
         break;
     case 8:
         printf("Calculando la normalización (Opción 1) de las columnas de la matriz A(fxc): '%dx%d\n'", f, c);
+        printf("-------------------Creación de las matrices---------------\n");
+        if (is_file == 0)
+        {
+            A = create_matrix(rows1, cols1);
+            B = create_matrix(rows2, cols2);
+            init_matrix_rand(A);
+            init_matrix_rand(B);
+        }
+        print_matrix(A);
+        print_matrix(B);
+
+        // Secuencial
         gettimeofday(&t_start, NULL);
-        init_matrix_threads_void(A, h, 8, e);
+        result_m = init_matrix_threads_void(A, 1, 8, e);
+        printf("------------MATRIZ RESULTANTE-----------------\n");
+        print_matrix(result_m);
+
         gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución secuencial: %f ms \n", exec_time);
+
+        // Hilos
+        gettimeofday(&t_start, NULL);
+        result_m = init_matrix_threads_void(A, h, 8, e);
+        printf("------------MATRIZ RESULTANTE-----------------\n");
+        print_matrix(result_m);
+
+        gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
+
+        free_matrix(A);
+        free_matrix(B);
+
         break;
     case 9:
         printf("Calculando la normalización (Opción 2) de las columnas de la matriz A(fxc): '%dx%d\n'", f, c);
+
+        printf("-------------------Creación de las matrices---------------\n");
+        if (is_file == 0)
+        {
+            A = create_matrix(rows1, cols1);
+            B = create_matrix(rows2, cols2);
+            init_matrix_rand(A);
+            init_matrix_rand(B);
+        }
+        print_matrix(A);
+        print_matrix(B);
+
+        // Secuencial
         gettimeofday(&t_start, NULL);
-        init_matrix_threads_void(A, h, 9, e);
+        result_m = init_matrix_threads_void(A, 1, 9, e);
+        printf("------------MATRIZ RESULTANTE-----------------\n");
+        print_matrix(result_m);
+
         gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución secuencial: %f ms \n", exec_time);
+
+        // Hilos
+        gettimeofday(&t_start, NULL);
+        result_m = init_matrix_threads_void(A, h, 9, e);
+        printf("------------MATRIZ RESULTANTE-----------------\n");
+        print_matrix(result_m);
+
+        gettimeofday(&t_end, NULL);
+
+        exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
+        exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
+        printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
+
+        free_matrix(A);
+        free_matrix(B);
+
         break;
     default:
-        printf("Esta opción no crresponde con ninguna de las opciones de las operaciones que este programa puede ejecutar");
+        printf("Esta opción no corresponde con ninguna de las opciones de las operaciones que este programa puede ejecutar\n");
     }
-    
 }
 
 int main(int argc, char *argv[])
 {
-    Menu_flags(argc, argv);
 
-    Matrix *M = create_matrix(rows1, cols1);
-    Matrix *N = create_matrix(rows2, cols2);
+    if (argc == 1)
+    {
+        printf("Error, debe ingresar flags\n");
+    }
+    else
+    {
 
-    init_matrix_rand(M);
-    init_matrix_rand(N);
+        Menu_flags(argc, argv);
+        printf("escalarss %f \n", escalar);
 
-    Menu_operations(hilos, option, escalar, rows1, cols1, rows2, cols2, M, N);
-
-    print_matrix(R);
-
-    exec_time = (t_end.tv_sec - t_start.tv_sec) * 1000.0;    // sec to ms
-    exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
-    printf("Tiempo de ejecución: %f ms \n", exec_time);
-
-
-    // Libera la memoria
-    free_matrix(M);
-    free_matrix(N);
-
+        Menu_operations(hilos, option, escalar, rows1, cols1, rows2, cols2);
+    }
     return 0;
-
 }
