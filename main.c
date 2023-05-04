@@ -126,16 +126,16 @@ int Menu_flags(int argc, char *argv[])
             fclose(file);
 
             // Imprime los valores leídos
-            printf("scalar: %lf\n", escalar);
+            // printf("scalar: %lf\n", escalar);
 
-            printf("-------------matriz de archivo ----------------\n");
+            // printf("-------------matriz de archivo ----------------\n");
 
-            print_matrix(A);
+            // print_matrix(A);
 
-            printf("--------------matriz 2 de archivo ---------------\n");
+            // printf("--------------matriz 2 de archivo ---------------\n");
 
-            print_matrix(B);
-            printf("-----------------------------\n");
+            // print_matrix(B);
+            // printf("-----------------------------\n");
 
             break;
         case 'o':
@@ -163,7 +163,7 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
     switch (option)
     {
     case 1:
-        printf("Calculando la media de cada columna de la matriz A(fxc): %dx%d\n", f, c);
+        printf("Calculando la media de cada columna de la matriz A[%dx%d]: \n", f, c);
 
         printf("-------------------Creación de la matriz---------------\n");
         if (is_file == 0)
@@ -202,7 +202,7 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
 
         break;
     case 2:
-        printf("Calculando la varianza de cada columna de la matriz A(fxc): %dx%d\n", f, c);
+        printf("Calculando la varianza de cada columna de la matriz A[%dx%d]: \n", f, c);
         printf("-------------------Creación de la matriz---------------\n");
         if (is_file == 0)
         {
@@ -239,7 +239,7 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
 
         break;
     case 3:
-        printf("Calculando la variación estandar de cada columna de la matriz A(fxc): %dx%d\n", f, c);
+        printf("Calculando la variación estandar de cada columna de la matriz A[%dx%d]: \n", f, c);
 
         printf("-------------------Creación de la matriz---------------\n");
         if (is_file == 0)
@@ -284,11 +284,15 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         }
         print_matrix(A);
 
-        printf("Calculando el valor minimo y el valor maximo de cada columna de la matriz A(fxc): %dx%d\n", f, c);
+        printf("\nCalculando el valor minimo y el valor maximo de cada columna de la matriz A[%dx%d]: \n", f, c);
         // Secuencial
         gettimeofday(&t_start, NULL);
         result_v = init_vector_threads(A, 1, 4);
-        printf("------------VECTOR RESULTANTE---------------\n");
+        printf("------------VECTOR DE MINIMOS---------------\n");
+        print_vector(result_v);
+
+        result_v = init_vector_threads(A, 1, 5);
+        printf("------------VECTOR DE MÁXIMOS---------------\n");
         print_vector(result_v);
 
         gettimeofday(&t_end, NULL);
@@ -300,7 +304,11 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         // Hilos
         gettimeofday(&t_start, NULL);
         result_v = init_vector_threads(A, h, 4);
-        printf("------------VECTOR RESULTANTE---------------\n");
+        printf("\n------------VECTOR DE MINIMOS---------------\n");
+        print_vector(result_v);
+        
+        result_v = init_vector_threads(A, h, 5);
+        printf("------------VECTOR DE MÁXIMOS---------------\n");
         print_vector(result_v);
 
         gettimeofday(&t_end, NULL);
@@ -310,10 +318,11 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
 
         free_matrix(A);
+        free_vector(result_v);
 
         break;
     case 5:
-        printf("Calculando la suma de la matriz A(fxc): %dx%d con la matriz B(rxs): '%dx%d\n'", f, c, r, s);
+        printf("Calculando la suma de la matriz A[%dx%d]:  con la matriz B(rxs): '%dx%d\n'", f, c, r, s);
 
         printf("-------------------Creación de las matrices---------------\n");
         if (is_file == 0)
@@ -329,7 +338,7 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         // Secuencial
         gettimeofday(&t_start, NULL);
         result_m = init_matrix_threads(A, B, 1, 5);
-        printf("------------MATRIZ RESULTANTE-----------------\n");
+        printf("\n------------MATRIZ RESULTANTE-----------------\n");
         print_matrix(result_m);
 
         gettimeofday(&t_end, NULL);
@@ -341,7 +350,7 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         // Hilos
         gettimeofday(&t_start, NULL);
         result_m = init_matrix_threads(A, B, h, 5);
-        printf("------------MATRIZ RESULTANTE-----------------\n");
+        printf("\n------------MATRIZ RESULTANTE-----------------\n");
         print_matrix(result_m);
 
         gettimeofday(&t_end, NULL);
@@ -402,13 +411,12 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         if (is_file == 0)
         {
             A = create_matrix(rows1, cols1);
-            B = create_matrix(rows2, cols2);
             init_matrix_rand(A);
-            init_matrix_rand(B);
         }
         print_matrix(A);
-        print_matrix(B);
-
+        Matrix *aux = create_matrix(A->rows, A->cols);
+        copy_matrix(aux, A);
+        
         // Secuencial
         gettimeofday(&t_start, NULL);
         result_m = init_matrix_threads_void(A, 1, 7, e);
@@ -421,9 +429,9 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         exec_time += (t_end.tv_usec - t_start.tv_usec) / 1000.0; // us to ms
         printf("Tiempo de ejecución secuencial: %f ms \n", exec_time);
 
-        // Hilos
+        // Hilos        
         gettimeofday(&t_start, NULL);
-        result_m = init_matrix_threads_void(A, h, 7, e);
+        result_m = init_matrix_threads_void(aux, h, 7, e);
         printf("------------MATRIZ RESULTANTE-----------------\n");
         print_matrix(result_m);
 
@@ -434,8 +442,6 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
 
         free_matrix(A);
-        free_matrix(B);
-
         break;
     case 8:
         printf("Calculando la normalización (Opción 1) de las columnas de la matriz A(fxc): '%dx%d\n'", f, c);
@@ -475,7 +481,6 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
 
         free_matrix(A);
-        free_matrix(B);
 
         break;
     case 9:
@@ -517,7 +522,6 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
 
         free_matrix(A);
-        free_matrix(B);
 
         break;
     default:
@@ -536,7 +540,7 @@ int main(int argc, char *argv[])
     {
 
         Menu_flags(argc, argv);
-        printf("escalarss %f \n", escalar);
+        printf("escalars %f \n", escalar);
 
         Menu_operations(hilos, option, escalar, rows1, cols1, rows2, cols2);
     }

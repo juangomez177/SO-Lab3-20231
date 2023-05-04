@@ -47,7 +47,7 @@ void init_matrix_rand(Matrix *M);
 
 // Copiado de un vector y una matriz
 // void copy_vector(Vector *dst, const Vector *src);
-// void copy_matrix(Matrix *dst, const Matrix *src);
+void copy_matrix(Matrix *dst, const Matrix *src);
 
 // Liberación de un vector o una matriz
 void free_vector(Vector *v);
@@ -58,7 +58,6 @@ void free_matrix(Matrix *M);
 // void scalar_vector(Vector *V, double k);
 void print_vector(const Vector *v);
 void print_matrix(const Matrix *M);
-void print_Thread_data(Thread_data *data);
 
 // Metodos paralelizados (puntos 1 al 9)
 void *Matrix_col_mean(void *thread_arg);                      // Punto 1
