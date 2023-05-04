@@ -25,7 +25,21 @@ Para ejecutar el programa con los operandos de un archivo, utilice el siguiente 
 ./matrices -o [número de operación] -p [ruta del archivo de operandos]
 ```
 
+## Flags disponibles
+
+- **-h**: Número de Hilos. Si no se usa, se asignarán 2 hilos por defecto
+- **-o**: El número correspondiente a la operación a realizar (único flag obligatorio).
+- **-f**: El número de filas del primer operando de la operación a realizar
+- **-c**: El número de columnas del primer operando de la operación a realizar
+- **-r**: El número de filas del segundo operando de la operación a realizar
+- **-s**: El número de columnas del segundo operando de la operación a realizar
+- **-p**: El path del archivo con los operandos de la operación a realizar (Si se indica esta
+opción, no es necesario indicar los tamaños de los operandos y estos deben
+deducirse del archivo)
+
+
 ## Operaciones disponibles
+
 1. Calcular la media de cada columna de una matriz
 2. Calcular la varianza de cada columna de una matriz
 3. Calcular la desviación estándar de cada columna de una matriz
@@ -37,4 +51,8 @@ Para ejecutar el programa con los operandos de un archivo, utilice el siguiente 
 9. Normalizar una matriz columna por columna con Min-Max
 
 ## Créditos
-Este laboratorio fue propuesto por el profesor Jheisson Argiro Lopez Restrepo en el laboratorio 3 de la clase de Sistemas Operativos. La solución en este repositorio fue escrita por Esneider Ballesta Paredes, Luis Felipe Cadavid Chica...
+Este laboratorio fue propuesto por el profesor Jheisson Argiro Lopez Restrepo en el laboratorio 3 de la clase de Sistemas Operativos. La solución en este repositorio fue escrita por: 
+- Esneider Ballesta Paredes
+- Juan José Gomez Mejia
+- Luis Felipe Cadavid Chica
+- Paolo Stevan Martínez Cardona
