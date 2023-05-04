@@ -449,12 +449,9 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         if (is_file == 0)
         {
             A = create_matrix(rows1, cols1);
-            B = create_matrix(rows2, cols2);
             init_matrix_rand(A);
-            init_matrix_rand(B);
         }
         print_matrix(A);
-        print_matrix(B);
 
         // Secuencial
         gettimeofday(&t_start, NULL);
@@ -490,12 +487,9 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         if (is_file == 0)
         {
             A = create_matrix(rows1, cols1);
-            B = create_matrix(rows2, cols2);
             init_matrix_rand(A);
-            init_matrix_rand(B);
         }
         print_matrix(A);
-        print_matrix(B);
 
         // Secuencial
         gettimeofday(&t_start, NULL);
