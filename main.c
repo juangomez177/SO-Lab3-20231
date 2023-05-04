@@ -442,6 +442,7 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
 
         free_matrix(A);
+        free_matrix(aux);
         break;
     case 8:
         printf("Calculando la normalización (Opción 1) de las columnas de la matriz A(fxc): '%dx%d\n'", f, c);
@@ -451,6 +452,8 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
             A = create_matrix(rows1, cols1);
             init_matrix_rand(A);
         }
+        aux = create_matrix(A->rows, A->cols);
+        copy_matrix(aux, A);
         print_matrix(A);
 
         // Secuencial
@@ -467,7 +470,7 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
 
         // Hilos
         gettimeofday(&t_start, NULL);
-        result_m = init_matrix_threads_void(A, h, 8, e);
+        result_m = init_matrix_threads_void(aux, h, 8, e);
         printf("------------MATRIZ RESULTANTE-----------------\n");
         print_matrix(result_m);
 
@@ -478,6 +481,7 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
 
         free_matrix(A);
+        free_matrix(aux);
 
         break;
     case 9:
@@ -489,11 +493,13 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
             A = create_matrix(rows1, cols1);
             init_matrix_rand(A);
         }
+        aux = create_matrix(A->rows, A->cols);
+        copy_matrix(aux, A);
         print_matrix(A);
 
         // Secuencial
         gettimeofday(&t_start, NULL);
-        result_m = init_matrix_threads_void(A, 1, 9, e);
+        result_m = init_matrix_threads_void(aux, 1, 9, e);
         printf("------------MATRIZ RESULTANTE-----------------\n");
         print_matrix(result_m);
 
@@ -516,6 +522,7 @@ void Menu_operations(int h, int option, double e, int f, int c, int r, int s)
         printf("Tiempo de ejecución con hilos: %f ms \n", exec_time);
 
         free_matrix(A);
+        free_matrix(aux);
 
         break;
     default:

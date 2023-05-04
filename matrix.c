@@ -187,7 +187,7 @@ void *Matrix_col_vrz(void *thread_arg)
             N->elements[j][i] *= N->elements[j][i];
         }
     }
-    v = init_vector_threads(N, data->thread_count, 4);
+    v = init_vector_threads(N, data->thread_count, 6);
     for (int i = data->thread_id; i < v->rows + v->cols - 1; i += data->thread_count)
     {
         data->V->elements[i] = v->elements[i] / N->rows;
@@ -454,6 +454,17 @@ Vector *init_vector_threads(const Matrix *M, int thread_count, int operation)
                 pthread_create(&thread_handles[thread], NULL, Matrix_col_max, (void *)&thread_args[thread]);
             }
             break;
+        case 6:
+            if (thread_count == 1)
+            {
+                Matrix_col_sum((void *)&thread_args[thread]);
+            }
+            else
+            {
+                pthread_create(&thread_handles[thread], NULL, Matrix_col_sum, (void *)&thread_args[thread]);
+            }
+            break;
+
         default:
             break;
         }
