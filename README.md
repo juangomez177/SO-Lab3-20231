@@ -27,32 +27,34 @@ Para ejecutar el programa con los operandos de un archivo, utilice el siguiente 
 
 ## Flags disponibles
 
-- **-h**: Número de Hilos. Si no se usa, se asignarán 2 hilos por defecto
+- **-h**: Número de Hilos. Si no se usa, se asignarán 2 hilos por defecto.
 - **-o**: El número correspondiente a la operación a realizar (único flag obligatorio).
-- **-f**: El número de filas del primer operando de la operación a realizar
-- **-c**: El número de columnas del primer operando de la operación a realizar
-- **-r**: El número de filas del segundo operando de la operación a realizar
-- **-s**: El número de columnas del segundo operando de la operación a realizar
+- **-f**: El número de filas del primer operando de la operación a realizar.
+- **-c**: El número de columnas del primer operando de la operación a realizar.
+- **-r**: El número de filas del segundo operando de la operación a realizar.
+- **-s**: El número de columnas del segundo operando de la operación a realizar.
+- **-e**: El valor escalar que se utilizará para la multiplicación con una matriz.
 - **-p**: El path del archivo con los operandos de la operación a realizar (Si se indica esta
 opción, no es necesario indicar los tamaños de los operandos y estos deben
-deducirse del archivo)
+deducirse del archivo).
 
 
 ## Operaciones disponibles
 
-1. Calcular la media de cada columna de una matriz
-2. Calcular la varianza de cada columna de una matriz
-3. Calcular la desviación estándar de cada columna de una matriz
-4. Calcular el valor mínimo y el valor máximo de cada columna de una matriz
-5. Sumar dos matrices
-6. Realizar el producto punto de dos matrices
-7. Multiplicar un escalar por una matriz
-8. Normalizar una matriz columna por columna con Standard Score
-9. Normalizar una matriz columna por columna con Min-Max
+1. Calcular la media de cada columna de una matriz.
+2. Calcular la varianza de cada columna de una matriz.
+3. Calcular la desviación estándar de cada columna de una matriz.
+4. Calcular el valor mínimo y el valor máximo de cada columna de una matriz.
+5. Sumar dos matrices.
+6. Realizar el producto punto de dos matrices.
+7. Multiplicar un escalar por una matriz.
+8. Normalizar una matriz por columna utilizando Min & Max.
+9. Normalizar una matriz por columna utilizando Mean & Standard Score.
+
 
 ## Créditos
 Este laboratorio fue propuesto por el profesor Jheisson Argiro Lopez Restrepo en el laboratorio 3 de la clase de Sistemas Operativos. La solución en este repositorio fue escrita por: 
-- Esneider Ballesta Paredes
-- Juan José Gomez Mejia
-- Luis Felipe Cadavid Chica
-- Paolo Stevan Martínez Cardona
+- Esneider Ballesta Paredes.
+- Juan José Gomez Mejia.
+- Luis Felipe Cadavid Chica.
+- Paolo Stevan Martínez Cardona.

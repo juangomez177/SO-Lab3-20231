@@ -1,8 +1,6 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#include <stdint.h>
-
 typedef struct Vector Vector;
 struct Vector
 {
@@ -18,8 +16,6 @@ struct Matrix
     int cols;
     double **elements;
 };
-
-extern Matrix *R;
 
 typedef struct Thread_data Thread_data;
 struct Thread_data
@@ -60,18 +56,18 @@ void print_vector(const Vector *v);
 void print_matrix(const Matrix *M);
 
 // Metodos paralelizados (puntos 1 al 9)
-void *Matrix_col_mean(void *thread_arg);                      // Punto 1
-void *Matrix_col_vrz(void *thread_arg);                       // Punto 2
-void *Matrix_col_std(void *thread_arg);                       // Punto 3
-double sqrt(double number);                                   // Punto 3 para el calculo de la raiz cuadrada
+void *Matrix_col_mean(void *thread_arg);                      // Punto 1 mean
+void *Matrix_col_vrz(void *thread_arg);                       // Punto 2 vrz
+void *Matrix_col_sum(void *thread_arg);                       // Punto 2 Suma individual de columnas
+void *Matrix_col_std(void *thread_arg);                       // Punto 3 std
+double sqrt(double number);                                   // Punto 3 para el calculo de sqrt
 void *Matrix_col_max(void *thread_arg);                       // Punto 4 max
 void *Matrix_col_min(void *thread_arg);                       // Punto 4 min
 void *Add_matrix(void *thread_arg);                           // Punto 5 Suma de matrices
-void *Matrix_col_sum(void *thread_arg);                       // Punto 5 Suma individual de columnas
-void *Dot_matrix(void *thread_arg);                           // Punto 6
-void *Scalar_matrix(void *thread_arg);                        // Punto 7
-void *Matrix_col_normalized_standard_score(void *thread_arg); // Punto 8
-void *Matrix_col_normalized_min_max(void *thread_arg);        // Punto 9
+void *Dot_matrix(void *thread_arg);                           // Punto 6 Producto punto
+void *Scalar_matrix(void *thread_arg);                        // Punto 7 Escalar
+void *Matrix_col_normalized_standard_score(void *thread_arg); // Punto 8 Nomalize
+void *Matrix_col_normalized_min_max(void *thread_arg);        // Punto 9 Nomalize
 
 // Metodos para la creacion de los hilos y el llamado a las distintas operaciones
 Vector *init_vector_threads(const Matrix *M, int thread_count, int operation);                  // Metodo que maneja los hilos para puntos 1, 2, 3 y 4. Genera un vector como resultado
